@@ -14,7 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      expenses: {
+        Row: {
+          categoria: string
+          created_at: string
+          data: string
+          descricao: string | null
+          id: string
+          user_id: string
+          valor: number
+          via_ia: boolean
+        }
+        Insert: {
+          categoria: string
+          created_at?: string
+          data: string
+          descricao?: string | null
+          id?: string
+          user_id: string
+          valor: number
+          via_ia?: boolean
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          data?: string
+          descricao?: string | null
+          id?: string
+          user_id?: string
+          valor?: number
+          via_ia?: boolean
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
