@@ -147,3 +147,35 @@
     color: var(--color-foreground);
   }
 }
+
+@theme inline {
+  --color-rule: var(--rule);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+}
+
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    background-image:
+      linear-gradient(oklch(0.86 0.02 86 / 0.35) 1px, transparent 1px);
+    background-size: 100% 2.25rem;
+  }
+}
+
+@utility num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+@utility rule-double {
+  border-top: 3px double var(--rule);
+  border-bottom: 3px double var(--rule);
+}
+
+@utility ledger-card {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 0 0 oklch(0.78 0.022 86 / 0.6);
+}
