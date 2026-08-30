@@ -150,6 +150,7 @@
 
 @theme inline {
   --color-rule: var(--rule);
+  --color-warning: var(--warning);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
 }
