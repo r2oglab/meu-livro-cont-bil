@@ -120,7 +120,15 @@ export async function sincronizarRecorrentes(): Promise<number> {
   const hoje = new Date();
   const fimGlobal = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
   const user_id = await idUsuario();
-  const novos: Record<string, unknown>[] = [];
+  const novos: {
+    user_id: string;
+    valor: number;
+    categoria: string;
+    data: string;
+    descricao: string | null;
+    via_ia: boolean;
+    recurring_id: string;
+  }[] = [];
 
   for (const r of ativos) {
     const [ai, mi] = r.data_inicio.split("-").map(Number) as [number, number];
