@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      category_budgets: {
+        Row: {
+          categoria: string
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+          valor_meta: number
+        }
+        Insert: {
+          categoria: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          valor_meta: number
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          valor_meta?: number
+        }
+        Relationships: []
+      }
       expenses: {
         Row: {
           categoria: string
@@ -21,6 +48,7 @@ export type Database = {
           data: string
           descricao: string | null
           id: string
+          recurring_id: string | null
           user_id: string
           valor: number
           via_ia: boolean
@@ -31,6 +59,7 @@ export type Database = {
           data: string
           descricao?: string | null
           id?: string
+          recurring_id?: string | null
           user_id: string
           valor: number
           via_ia?: boolean
@@ -41,9 +70,60 @@ export type Database = {
           data?: string
           descricao?: string | null
           id?: string
+          recurring_id?: string | null
           user_id?: string
           valor?: number
           via_ia?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_recurring_id_fkey"
+            columns: ["recurring_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recurring_expenses: {
+        Row: {
+          ativo: boolean
+          categoria: string
+          created_at: string
+          data_fim: string | null
+          data_inicio: string
+          descricao: string | null
+          dia_do_mes: number
+          id: string
+          updated_at: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          ativo?: boolean
+          categoria: string
+          created_at?: string
+          data_fim?: string | null
+          data_inicio: string
+          descricao?: string | null
+          dia_do_mes: number
+          id?: string
+          updated_at?: string
+          user_id: string
+          valor: number
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string
+          descricao?: string | null
+          dia_do_mes?: number
+          id?: string
+          updated_at?: string
+          user_id?: string
+          valor?: number
         }
         Relationships: []
       }
