@@ -1,24 +1,46 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
+  ssr: false,
+  head: () => ({
+    meta: [
+      { title: "Livro-Caixa — Controle de gastos pessoais" },
+      {
+        name: "description",
+        content:
+          "Livro-caixa pessoal para registrar gastos em reais, por mês e por categoria, com lançamento por texto livre.",
+      },
+      { property: "og:title", content: "Livro-Caixa — Controle de gastos pessoais" },
+      {
+        property: "og:description",
+        content:
+          "Livro-caixa pessoal para registrar gastos em reais, por mês e por categoria.",
+      },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      navigate({ to: data.session ? "/livro" : "/auth", replace: true });
+    });
+  }, [navigate]);
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
+    <main className="flex min-h-screen items-center justify-center px-6">
+      <div className="text-center">
+        <p className="num text-[0.7rem] uppercase tracking-[0.3em] text-muted-foreground">
+          Controle de gastos
+        </p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight">Livro-Caixa</h1>
+        <p className="mt-3 text-sm text-muted-foreground">Abrindo seu livro…</p>
+      </div>
+    </main>
   );
 }
