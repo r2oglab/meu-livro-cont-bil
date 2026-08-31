@@ -1,10 +1,35 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ChevronLeft, ChevronRight, Trash2, LogOut, Sparkles } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Trash2,
+  LogOut,
+  Sparkles,
+  Repeat,
+  Target,
+} from "lucide-react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+} from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { criarGastoPorTexto } from "@/lib/expenses.functions";
+import {
+  buscarIntervalo,
+  buscarMes,
+  buscarMetas,
+  idUsuario,
+  sincronizarRecorrentes,
+  type Gasto,
+} from "@/lib/ledger";
+import { EditarGastoDialog } from "@/components/EditarGastoDialog";
 import {
   CATEGORIAS,
   MESES,
@@ -16,6 +41,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -40,37 +66,18 @@ export const Route = createFileRoute("/_authenticated/livro")({
         property: "og:description",
         content: "Registre e acompanhe seus gastos mensais em reais, por categoria.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Livro,
 });
 
-type Gasto = {
-  id: string;
-  valor: number;
-  categoria: string;
-  data: string;
-  descricao: string | null;
-  via_ia: boolean;
-};
-
-async function buscarMes(ano: number, mes: number): Promise<Gasto[]> {
-  const [ini, fim] = rangeMes(ano, mes);
-  const { data, error } = await supabase
-    .from("expenses")
-    .select("id, valor, categoria, data, descricao, via_ia")
-    .gte("data", ini)
-    .lte("data", fim)
-    .order("data", { ascending: false })
-    .order("created_at", { ascending: false });
-  if (error) throw new Error(error.message);
-  return (data ?? []).map((g) => ({ ...g, valor: Number(g.valor) }));
-}
-
 function Livro() {
   const hoje = new Date();
   const [ano, setAno] = useState(hoje.getFullYear());
   const [mes, setMes] = useState(hoje.getMonth());
+  const [editando, setEditando] = useState<Gasto | null>(null);
   const qc = useQueryClient();
   const navigate = useNavigate();
 
@@ -78,6 +85,15 @@ function Livro() {
     const d = new Date(ano, mes - 1, 1);
     return { ano: d.getFullYear(), mes: d.getMonth() };
   }, [ano, mes]);
+
+  // materializa recorrências pendentes ao abrir o livro
+  useEffect(() => {
+    sincronizarRecorrentes()
+      .then((n) => {
+        if (n > 0) qc.invalidateQueries({ queryKey: ["gastos"] });
+      })
+      .catch(() => undefined);
+  }, [qc]);
 
   const atual = useQuery({
     queryKey: ["gastos", ano, mes],
@@ -87,11 +103,38 @@ function Livro() {
     queryKey: ["gastos", anterior.ano, anterior.mes],
     queryFn: () => buscarMes(anterior.ano, anterior.mes),
   });
+  const metas = useQuery({ queryKey: ["metas"], queryFn: buscarMetas });
+  const evolucao = useQuery({
+    queryKey: ["evolucao", ano, mes],
+    queryFn: async () => {
+      const meses = Array.from({ length: 6 }, (_, i) => {
+        const d = new Date(ano, mes - 5 + i, 1);
+        return { ano: d.getFullYear(), mes: d.getMonth() };
+      });
+      const primeiro = meses[0]!;
+      const ultimo = meses[5]!;
+      const [ini] = rangeMes(primeiro.ano, primeiro.mes);
+      const [, fim] = rangeMes(ultimo.ano, ultimo.mes);
+      const linhas = await buscarIntervalo(ini, fim);
+      return meses.map((m) => ({
+        rotulo: MESES[m.mes]!.slice(0, 3),
+        total: linhas
+          .filter((l) => Number(l.data.slice(0, 4)) === m.ano && Number(l.data.slice(5, 7)) === m.mes + 1)
+          .reduce((s, l) => s + l.valor, 0),
+      }));
+    },
+  });
 
   const gastos = atual.data ?? [];
   const total = gastos.reduce((s, g) => s + g.valor, 0);
   const totalAnterior = (passado.data ?? []).reduce((s, g) => s + g.valor, 0);
   const variacao = totalAnterior > 0 ? ((total - totalAnterior) / totalAnterior) * 100 : null;
+
+  const mapaMetas = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const meta of metas.data ?? []) m.set(meta.categoria, meta.valor_meta);
+    return m;
+  }, [metas.data]);
 
   const porCategoria = useMemo(() => {
     const m = new Map<string, number>();
@@ -99,7 +142,11 @@ function Livro() {
     return [...m.entries()].sort((a, b) => b[1] - a[1]);
   }, [gastos]);
 
-  const invalidar = () => qc.invalidateQueries({ queryKey: ["gastos"] });
+  const invalidar = () => {
+    qc.invalidateQueries({ queryKey: ["gastos"] });
+    qc.invalidateQueries({ queryKey: ["evolucao"] });
+    qc.invalidateQueries({ queryKey: ["recorrentes"] });
+  };
 
   const excluir = useMutation({
     mutationFn: async (id: string) => {
@@ -133,13 +180,21 @@ function Livro() {
           <p className="num text-[0.7rem] uppercase tracking-[0.28em] text-muted-foreground">
             Livro-Caixa
           </p>
-          <button
-            onClick={sair}
-            aria-label="Sair"
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-          >
-            <LogOut className="size-3.5" /> sair
-          </button>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <Link to="/metas" className="flex items-center gap-1 hover:text-foreground">
+              <Target className="size-3.5" /> metas
+            </Link>
+            <Link to="/recorrentes" className="flex items-center gap-1 hover:text-foreground">
+              <Repeat className="size-3.5" /> recorrentes
+            </Link>
+            <button
+              onClick={sair}
+              aria-label="Sair"
+              className="flex items-center gap-1 hover:text-foreground"
+            >
+              <LogOut className="size-3.5" /> sair
+            </button>
+          </div>
         </div>
 
         <div className="mt-3 flex items-center justify-between">
@@ -176,26 +231,95 @@ function Livro() {
 
       <section className="mt-8">
         <h2 className="num mb-3 text-[0.7rem] uppercase tracking-[0.25em] text-muted-foreground">
+          Evolução (6 meses)
+        </h2>
+        <div className="ledger-card h-44 p-2">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={evolucao.data ?? []}>
+              <CartesianGrid vertical={false} stroke="var(--rule)" strokeOpacity={0.5} />
+              <XAxis
+                dataKey="rotulo"
+                tickLine={false}
+                axisLine={false}
+                tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+              />
+              <Tooltip
+                cursor={{ fill: "var(--secondary)" }}
+                formatter={(v: number) => [brl(Number(v)), "total"]}
+                contentStyle={{
+                  background: "var(--card)",
+                  border: "1px solid var(--border)",
+                  fontSize: 12,
+                }}
+              />
+              <Bar dataKey="total" fill="var(--primary)" radius={[2, 2, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </section>
+
+      <section className="mt-8">
+        <h2 className="num mb-3 text-[0.7rem] uppercase tracking-[0.25em] text-muted-foreground">
           Por categoria
         </h2>
         {porCategoria.length === 0 ? (
           <p className="text-sm text-muted-foreground">Nenhum gasto neste mês.</p>
         ) : (
           <ul className="space-y-2.5">
-            {porCategoria.map(([cat, v]) => (
-              <li key={cat}>
-                <div className="flex items-baseline justify-between text-sm">
-                  <span>{cat}</span>
-                  <span className="num">{brl(v)}</span>
-                </div>
-                <div className="mt-1 h-1.5 w-full bg-secondary">
-                  <div
-                    className="h-full bg-primary"
-                    style={{ width: `${total > 0 ? (v / total) * 100 : 0}%` }}
-                  />
-                </div>
-              </li>
-            ))}
+            {porCategoria.map(([cat, v]) => {
+              const meta = mapaMetas.get(cat);
+              const pct = meta ? (v / meta) * 100 : null;
+              const estado =
+                pct === null ? "neutro" : pct >= 100 ? "estourou" : pct >= 80 ? "perto" : "ok";
+              const corBarra =
+                estado === "estourou"
+                  ? "bg-destructive"
+                  : estado === "perto"
+                    ? "bg-warning"
+                    : "bg-primary";
+              return (
+                <li key={cat}>
+                  <div className="flex items-baseline justify-between text-sm">
+                    <span>
+                      {cat}
+                      {pct !== null && (
+                        <span
+                          className={`num ml-1.5 text-[0.65rem] ${
+                            estado === "estourou"
+                              ? "text-destructive"
+                              : estado === "perto"
+                                ? "text-warning"
+                                : "text-muted-foreground"
+                          }`}
+                        >
+                          {pct.toFixed(0)}% da meta
+                        </span>
+                      )}
+                    </span>
+                    <span className="num">{brl(v)}</span>
+                  </div>
+                  <div className="mt-1 h-1.5 w-full bg-secondary">
+                    <div
+                      className={`h-full ${corBarra}`}
+                      style={{
+                        width: `${
+                          meta
+                            ? Math.min(100, (v / meta) * 100)
+                            : total > 0
+                              ? (v / total) * 100
+                              : 0
+                        }%`,
+                      }}
+                    />
+                  </div>
+                  {meta && (
+                    <p className="num mt-0.5 text-[0.65rem] text-muted-foreground">
+                      meta {brl(meta)}
+                    </p>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
@@ -217,21 +341,32 @@ function Livro() {
                 key={g.id}
                 className="flex items-center gap-3 border-b border-rule/60 py-2.5 text-sm"
               >
-                <span className="num w-11 shrink-0 text-muted-foreground">
-                  {formatarDataCurta(g.data)}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate">{g.descricao || g.categoria}</span>
-                  <span className="block text-xs text-muted-foreground">
-                    {g.categoria}
-                    {g.via_ia && (
-                      <span className="num ml-1.5 border border-primary/40 px-1 text-[0.6rem] uppercase tracking-wider text-primary">
-                        IA
-                      </span>
-                    )}
+                <button
+                  className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                  onClick={() => setEditando(g)}
+                  aria-label={`Editar lançamento ${g.descricao || g.categoria}`}
+                >
+                  <span className="num w-11 shrink-0 text-muted-foreground">
+                    {formatarDataCurta(g.data)}
                   </span>
-                </span>
-                <span className="num shrink-0 tabular-nums">{brl(g.valor)}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate">{g.descricao || g.categoria}</span>
+                    <span className="block text-xs text-muted-foreground">
+                      {g.categoria}
+                      {g.via_ia && (
+                        <span className="num ml-1.5 border border-primary/40 px-1 text-[0.6rem] uppercase tracking-wider text-primary">
+                          IA
+                        </span>
+                      )}
+                      {g.recurring_id && (
+                        <span className="num ml-1.5 border border-rule px-1 text-[0.6rem] uppercase tracking-wider">
+                          Recorrente
+                        </span>
+                      )}
+                    </span>
+                  </span>
+                  <span className="num shrink-0 tabular-nums">{brl(g.valor)}</span>
+                </button>
                 <button
                   aria-label="Excluir lançamento"
                   onClick={() => excluir.mutate(g.id)}
@@ -244,6 +379,12 @@ function Livro() {
           </ul>
         )}
       </section>
+
+      <EditarGastoDialog
+        gasto={editando}
+        onOpenChange={(aberto) => !aberto && setEditando(null)}
+        onSalvo={invalidar}
+      />
     </main>
   );
 }
@@ -254,6 +395,7 @@ function FormularioGasto({ onSalvo }: { onSalvo: () => void }) {
   const [categoria, setCategoria] = useState<string>("Alimentação");
   const [data, setData] = useState(hojeISO());
   const [descricao, setDescricao] = useState("");
+  const [recorrente, setRecorrente] = useState(false);
 
   const parseIA = useServerFn(criarGastoPorTexto);
 
@@ -271,21 +413,43 @@ function FormularioGasto({ onSalvo }: { onSalvo: () => void }) {
     mutationFn: async () => {
       const v = Number(valor.replace(",", "."));
       if (!Number.isFinite(v) || v <= 0) throw new Error("Informe um valor válido.");
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) throw new Error("Sessão expirada.");
+      const user_id = await idUsuario();
+      const centavos = Math.round(v * 100) / 100;
+      let recurring_id: string | null = null;
+
+      if (recorrente) {
+        const { data: rec, error: errRec } = await supabase
+          .from("recurring_expenses")
+          .insert({
+            user_id,
+            valor: centavos,
+            categoria,
+            descricao: descricao.trim() || null,
+            dia_do_mes: Number(data.slice(8, 10)),
+            data_inicio: data,
+            ativo: true,
+          })
+          .select("id")
+          .single();
+        if (errRec) throw new Error(errRec.message);
+        recurring_id = rec.id;
+      }
+
       const { error } = await supabase.from("expenses").insert({
-        user_id: user.user.id,
-        valor: Math.round(v * 100) / 100,
+        user_id,
+        valor: centavos,
         categoria,
         data,
         descricao: descricao.trim() || null,
         via_ia: false,
+        recurring_id,
       });
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
       setValor("");
       setDescricao("");
+      setRecorrente(false);
       onSalvo();
       toast.success("Gasto registrado");
     },
@@ -363,6 +527,15 @@ function FormularioGasto({ onSalvo }: { onSalvo: () => void }) {
             <Label htmlFor="desc">Descrição (opcional)</Label>
             <Input id="desc" value={descricao} onChange={(e) => setDescricao(e.target.value)} />
           </div>
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox
+              checked={recorrente}
+              onCheckedChange={(c) => setRecorrente(c === true)}
+              aria-label="Tornar recorrente"
+            />
+            Tornar recorrente todo mês no dia{" "}
+            <span className="num">{Number(data.slice(8, 10))}</span>
+          </label>
           <Button className="w-full" disabled={manual.isPending} onClick={() => manual.mutate()}>
             {manual.isPending ? "Salvando…" : "Salvar lançamento"}
           </Button>

@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedLivroRouteImport } from './routes/_authenticated/livro'
+import { Route as AuthenticatedMetasRouteImport } from './routes/_authenticated/metas'
+import { Route as AuthenticatedRecorrentesRouteImport } from './routes/_authenticated/recorrentes'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -33,16 +35,31 @@ const AuthenticatedLivroRoute = AuthenticatedLivroRouteImport.update({
   path: '/livro',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedMetasRoute = AuthenticatedMetasRouteImport.update({
+  id: '/metas',
+  path: '/metas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRecorrentesRoute =
+  AuthenticatedRecorrentesRouteImport.update({
+    id: '/recorrentes',
+    path: '/recorrentes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/livro': typeof AuthenticatedLivroRoute
+  '/metas': typeof AuthenticatedMetasRoute
+  '/recorrentes': typeof AuthenticatedRecorrentesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/livro': typeof AuthenticatedLivroRoute
+  '/metas': typeof AuthenticatedMetasRoute
+  '/recorrentes': typeof AuthenticatedRecorrentesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -50,13 +67,22 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/livro': typeof AuthenticatedLivroRoute
+  '/_authenticated/metas': typeof AuthenticatedMetasRoute
+  '/_authenticated/recorrentes': typeof AuthenticatedRecorrentesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/livro'
+  fullPaths: '/' | '/auth' | '/livro' | '/metas' | '/recorrentes'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/livro'
-  id: '__root__' | '/' | '/_authenticated' | '/auth' | '/_authenticated/livro'
+  to: '/' | '/auth' | '/livro' | '/metas' | '/recorrentes'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/livro'
+    | '/_authenticated/metas'
+    | '/_authenticated/recorrentes'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -95,15 +121,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLivroRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/metas': {
+      id: '/_authenticated/metas'
+      path: '/metas'
+      fullPath: '/metas'
+      preLoaderRoute: typeof AuthenticatedMetasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/recorrentes': {
+      id: '/_authenticated/recorrentes'
+      path: '/recorrentes'
+      fullPath: '/recorrentes'
+      preLoaderRoute: typeof AuthenticatedRecorrentesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedLivroRoute: typeof AuthenticatedLivroRoute
+  AuthenticatedMetasRoute: typeof AuthenticatedMetasRoute
+  AuthenticatedRecorrentesRoute: typeof AuthenticatedRecorrentesRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedLivroRoute: AuthenticatedLivroRoute,
+  AuthenticatedMetasRoute: AuthenticatedMetasRoute,
+  AuthenticatedRecorrentesRoute: AuthenticatedRecorrentesRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
