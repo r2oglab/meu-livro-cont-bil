@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedLivroRouteImport } from './routes/_authenticated/livro'
+import { Route as AuthenticatedMetasRouteImport } from './routes/_authenticated/metas'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -33,16 +34,23 @@ const AuthenticatedLivroRoute = AuthenticatedLivroRouteImport.update({
   path: '/livro',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedMetasRoute = AuthenticatedMetasRouteImport.update({
+  id: '/metas',
+  path: '/metas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/livro': typeof AuthenticatedLivroRoute
+  '/metas': typeof AuthenticatedMetasRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/livro': typeof AuthenticatedLivroRoute
+  '/metas': typeof AuthenticatedMetasRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -50,13 +58,20 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/livro': typeof AuthenticatedLivroRoute
+  '/_authenticated/metas': typeof AuthenticatedMetasRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/livro'
+  fullPaths: '/' | '/auth' | '/livro' | '/metas'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/livro'
-  id: '__root__' | '/' | '/_authenticated' | '/auth' | '/_authenticated/livro'
+  to: '/' | '/auth' | '/livro' | '/metas'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/livro'
+    | '/_authenticated/metas'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -95,15 +110,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLivroRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/metas': {
+      id: '/_authenticated/metas'
+      path: '/metas'
+      fullPath: '/metas'
+      preLoaderRoute: typeof AuthenticatedMetasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedLivroRoute: typeof AuthenticatedLivroRoute
+  AuthenticatedMetasRoute: typeof AuthenticatedMetasRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedLivroRoute: AuthenticatedLivroRoute,
+  AuthenticatedMetasRoute: AuthenticatedMetasRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
