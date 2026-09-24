@@ -43,33 +43,42 @@ export type Database = {
       }
       expenses: {
         Row: {
+          cartao: string | null
           categoria: string
           created_at: string
           data: string
           descricao: string | null
+          forma_pagamento: string | null
           id: string
+          local: string | null
           recurring_id: string | null
           user_id: string
           valor: number
           via_ia: boolean
         }
         Insert: {
+          cartao?: string | null
           categoria: string
           created_at?: string
           data: string
           descricao?: string | null
+          forma_pagamento?: string | null
           id?: string
+          local?: string | null
           recurring_id?: string | null
           user_id: string
           valor: number
           via_ia?: boolean
         }
         Update: {
+          cartao?: string | null
           categoria?: string
           created_at?: string
           data?: string
           descricao?: string | null
+          forma_pagamento?: string | null
           id?: string
+          local?: string | null
           recurring_id?: string | null
           user_id?: string
           valor?: number
@@ -88,39 +97,48 @@ export type Database = {
       recurring_expenses: {
         Row: {
           ativo: boolean
+          cartao: string | null
           categoria: string
           created_at: string
           data_fim: string | null
           data_inicio: string
           descricao: string | null
           dia_do_mes: number
+          forma_pagamento: string | null
           id: string
+          local: string | null
           updated_at: string
           user_id: string
           valor: number
         }
         Insert: {
           ativo?: boolean
+          cartao?: string | null
           categoria: string
           created_at?: string
           data_fim?: string | null
           data_inicio: string
           descricao?: string | null
           dia_do_mes: number
+          forma_pagamento?: string | null
           id?: string
+          local?: string | null
           updated_at?: string
           user_id: string
           valor: number
         }
         Update: {
           ativo?: boolean
+          cartao?: string | null
           categoria?: string
           created_at?: string
           data_fim?: string | null
           data_inicio?: string
           descricao?: string | null
           dia_do_mes?: number
+          forma_pagamento?: string | null
           id?: string
+          local?: string | null
           updated_at?: string
           user_id?: string
           valor?: number
