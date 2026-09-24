@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { PagamentoCampos } from "@/components/PagamentoCampos";
 
 export const Route = createFileRoute("/_authenticated/recorrentes")({
   head: () => ({
@@ -117,7 +118,9 @@ function Recorrentes() {
                 <span className="num shrink-0 text-sm">{brl(r.valor)}</span>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
-                {r.categoria} · todo dia <span className="num">{r.dia_do_mes}</span> · desde{" "}
+                {r.categoria}
+                {r.local ? ` · ${r.local}` : ""}
+                {r.forma_pagamento ? ` · ${r.forma_pagamento}${r.cartao ? ` (${r.cartao})` : ""}` : ""} · todo dia <span className="num">{r.dia_do_mes}</span> · desde{" "}
                 <span className="num">{r.data_inicio}</span>
                 {r.data_fim ? (
                   <>
@@ -191,6 +194,9 @@ function EditarRecorrenteDialog({
           descricao: atual.descricao?.trim() || null,
           dia_do_mes: Math.min(31, Math.max(1, Number(atual.dia_do_mes) || 1)),
           data_fim: atual.data_fim || null,
+          local: atual.local?.trim() || null,
+          forma_pagamento: atual.forma_pagamento,
+          cartao: atual.forma_pagamento === "Crédito" ? atual.cartao : null,
         })
         .eq("id", atual.id);
       if (error) throw new Error(error.message);
@@ -259,6 +265,19 @@ function EditarRecorrenteDialog({
                 onChange={(e) => set({ descricao: e.target.value })}
               />
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="r-local">Local</Label>
+              <Input
+                id="r-local"
+                value={atual.local ?? ""}
+                onChange={(e) => set({ local: e.target.value })}
+              />
+            </div>
+            <PagamentoCampos
+              forma={atual.forma_pagamento}
+              cartao={atual.cartao}
+              onChange={(v) => set({ forma_pagamento: v.forma, cartao: v.cartao })}
+            />
             <div className="space-y-1.5">
               <Label htmlFor="r-fim">Encerrar em (opcional)</Label>
               <Input
