@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { PagamentoCampos } from "@/components/PagamentoCampos";
 
 export function EditarGastoDialog({
   gasto,
@@ -36,6 +37,8 @@ export function EditarGastoDialog({
   const [categoria, setCategoria] = useState("Outros");
   const [data, setData] = useState("");
   const [descricao, setDescricao] = useState("");
+  const [local, setLocal] = useState("");
+  const [pag, setPag] = useState<{ forma: string | null; cartao: string | null }>({ forma: null, cartao: null });
 
   useEffect(() => {
     if (!gasto) return;
@@ -43,6 +46,8 @@ export function EditarGastoDialog({
     setCategoria(gasto.categoria);
     setData(gasto.data);
     setDescricao(gasto.descricao ?? "");
+    setLocal(gasto.local ?? "");
+    setPag({ forma: gasto.forma_pagamento, cartao: gasto.cartao });
   }, [gasto]);
 
   const salvar = useMutation({
@@ -57,6 +62,9 @@ export function EditarGastoDialog({
           categoria,
           data,
           descricao: descricao.trim() || null,
+          local: local.trim() || null,
+          forma_pagamento: pag.forma,
+          cartao: pag.forma === "Crédito" ? pag.cartao : null,
         })
         .eq("id", gasto.id);
       if (error) throw new Error(error.message);
@@ -122,6 +130,15 @@ export function EditarGastoDialog({
             <Label htmlFor="e-desc">Descrição</Label>
             <Input id="e-desc" value={descricao} onChange={(e) => setDescricao(e.target.value)} />
           </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="e-local">Local</Label>
+            <Input id="e-local" value={local} onChange={(e) => setLocal(e.target.value)} />
+          </div>
+          <PagamentoCampos
+            forma={pag.forma}
+            cartao={pag.cartao}
+            onChange={setPag}
+          />
         </div>
 
         <DialogFooter>

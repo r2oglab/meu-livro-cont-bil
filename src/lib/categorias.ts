@@ -46,3 +46,6 @@ export function formatarDataCurta(iso: string) {
   const [, m, d] = iso.split("-");
   return `${d}/${m}`;
 }
+
+export const FORMAS_PAGAMENTO = ["Débito", "Crédito", "Pix"] as const;
+export const CARTOES = ["Meu cartão", "Cartão do irmão"] as const;

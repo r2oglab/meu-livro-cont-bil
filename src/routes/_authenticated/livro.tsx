@@ -10,6 +10,7 @@ import {
   Sparkles,
   Repeat,
   Target,
+  Download,
 } from "lucide-react";
 import {
   Bar,
@@ -52,6 +53,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { PagamentoCampos } from "@/components/PagamentoCampos";
+import { ExportarDialog } from "@/components/ExportarDialog";
 
 export const Route = createFileRoute("/_authenticated/livro")({
   head: () => ({
@@ -78,6 +81,7 @@ function Livro() {
   const [ano, setAno] = useState(hoje.getFullYear());
   const [mes, setMes] = useState(hoje.getMonth());
   const [editando, setEditando] = useState<Gasto | null>(null);
+  const [exportando, setExportando] = useState(false);
   const qc = useQueryClient();
   const navigate = useNavigate();
 
@@ -181,6 +185,12 @@ function Livro() {
             Livro-Caixa
           </p>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <button
+              onClick={() => setExportando(true)}
+              className="flex items-center gap-1 hover:text-foreground"
+            >
+              <Download className="size-3.5" /> exportar
+            </button>
             <Link to="/metas" className="flex items-center gap-1 hover:text-foreground">
               <Target className="size-3.5" /> metas
             </Link>
@@ -353,6 +363,7 @@ function Livro() {
                     <span className="block truncate">{g.descricao || g.categoria}</span>
                     <span className="block text-xs text-muted-foreground">
                       {g.categoria}
+                      {g.local && <> · {g.local}</>}
                       {g.via_ia && (
                         <span className="num ml-1.5 border border-primary/40 px-1 text-[0.6rem] uppercase tracking-wider text-primary">
                           IA
@@ -361,6 +372,12 @@ function Livro() {
                       {g.recurring_id && (
                         <span className="num ml-1.5 border border-rule px-1 text-[0.6rem] uppercase tracking-wider">
                           Recorrente
+                        </span>
+                      )}
+                      {g.forma_pagamento && (
+                        <span className="num ml-1.5 border border-rule px-1 text-[0.6rem] uppercase tracking-wider">
+                          {g.forma_pagamento}
+                          {g.cartao ? ` · ${g.cartao}` : ""}
                         </span>
                       )}
                     </span>
@@ -385,6 +402,13 @@ function Livro() {
         onOpenChange={(aberto) => !aberto && setEditando(null)}
         onSalvo={invalidar}
       />
+      <ExportarDialog
+        aberto={exportando}
+        onOpenChange={setExportando}
+        ano={ano}
+        mes={mes}
+        gastosMes={gastos}
+      />
     </main>
   );
 }
@@ -396,6 +420,8 @@ function FormularioGasto({ onSalvo }: { onSalvo: () => void }) {
   const [data, setData] = useState(hojeISO());
   const [descricao, setDescricao] = useState("");
   const [recorrente, setRecorrente] = useState(false);
+  const [local, setLocal] = useState("");
+  const [pag, setPag] = useState<{ forma: string | null; cartao: string | null }>({ forma: null, cartao: null });
 
   const parseIA = useServerFn(criarGastoPorTexto);
 
@@ -428,6 +454,9 @@ function FormularioGasto({ onSalvo }: { onSalvo: () => void }) {
             dia_do_mes: Number(data.slice(8, 10)),
             data_inicio: data,
             ativo: true,
+            local: local.trim() || null,
+            forma_pagamento: pag.forma,
+            cartao: pag.forma === "Crédito" ? pag.cartao : null,
           })
           .select("id")
           .single();
@@ -443,6 +472,9 @@ function FormularioGasto({ onSalvo }: { onSalvo: () => void }) {
         descricao: descricao.trim() || null,
         via_ia: false,
         recurring_id,
+            local: local.trim() || null,
+            forma_pagamento: pag.forma,
+            cartao: pag.forma === "Crédito" ? pag.cartao : null,
       });
       if (error) throw new Error(error.message);
     },
@@ -450,6 +482,8 @@ function FormularioGasto({ onSalvo }: { onSalvo: () => void }) {
       setValor("");
       setDescricao("");
       setRecorrente(false);
+      setLocal("");
+      setPag({ forma: null, cartao: null });
       onSalvo();
       toast.success("Gasto registrado");
     },
@@ -527,6 +561,16 @@ function FormularioGasto({ onSalvo }: { onSalvo: () => void }) {
             <Label htmlFor="desc">Descrição (opcional)</Label>
             <Input id="desc" value={descricao} onChange={(e) => setDescricao(e.target.value)} />
           </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="local">Local (opcional)</Label>
+            <Input
+              id="local"
+              placeholder="ex: Barbearia Thiago Andrade"
+              value={local}
+              onChange={(e) => setLocal(e.target.value)}
+            />
+          </div>
+          <PagamentoCampos forma={pag.forma} cartao={pag.cartao} onChange={setPag} />
           <label className="flex items-center gap-2 text-sm">
             <Checkbox
               checked={recorrente}

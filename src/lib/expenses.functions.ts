@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { CATEGORIAS } from "@/lib/categorias";
+import { CARTOES, CATEGORIAS, FORMAS_PAGAMENTO } from "@/lib/categorias";
 
 type Entrada = { texto: string; hoje: string };
 
@@ -25,8 +25,11 @@ export const criarGastoPorTexto = createServerFn({ method: "POST" })
       "Resolva datas relativas como 'ontem', 'anteontem', 'semana passada' a partir dela.",
       `Categorias permitidas (escolha exatamente uma): ${CATEGORIAS.join(", ")}.`,
       "Responda APENAS com um JSON estrito, sem markdown, no formato:",
-      '{"valor": number, "categoria": string, "descricao": string, "data": "YYYY-MM-DD"}',
+      '{"valor": number, "categoria": string, "descricao": string, "data": "YYYY-MM-DD", "local": string|null, "forma_pagamento": string|null, "cartao": string|null}',
       "A descrição deve ser curta (até 40 caracteres). Se não houver data explícita, use hoje.",
+      "local: nome do estabelecimento ou nome próprio mencionado (ex: 'gastei 35 no barbeiro Thiago Andrade' → 'Thiago Andrade'). Se não houver menção explícita, null. NUNCA invente.",
+      `forma_pagamento: uma de ${FORMAS_PAGAMENTO.join(", ")} somente se o texto mencionar (pix, débito, crédito/cartão de crédito); senão null.`,
+      `cartao: somente se forma_pagamento for Crédito e o texto indicar qual: "Meu cartão" (meu cartão) ou "Cartão do irmão" (cartão do meu irmão). Se mencionar 'cartão do irmão' sem dizer crédito, assuma Crédito. Senão null.`,
       `Texto: ${data.texto}`,
     ].join("\n");
 
@@ -53,7 +56,7 @@ export const criarGastoPorTexto = createServerFn({ method: "POST" })
     const match = raw.match(/\{[\s\S]*\}/);
     if (!match) throw new Error("Não consegui interpretar o texto.");
 
-    let parsed: { valor?: unknown; categoria?: unknown; descricao?: unknown; data?: unknown };
+    let parsed: { valor?: unknown; categoria?: unknown; descricao?: unknown; data?: unknown; local?: unknown; forma_pagamento?: unknown; cartao?: unknown };
     try {
       parsed = JSON.parse(match[0]);
     } catch {
@@ -73,6 +76,14 @@ export const criarGastoPorTexto = createServerFn({ method: "POST" })
     const descricao =
       typeof parsed.descricao === "string" ? parsed.descricao.slice(0, 80) : null;
 
+    const local =
+      typeof parsed.local === "string" && parsed.local.trim() ? parsed.local.trim().slice(0, 80) : null;
+    const forma = FORMAS_PAGAMENTO.includes(parsed.forma_pagamento as never)
+      ? (parsed.forma_pagamento as string)
+      : null;
+    const cartao =
+      forma === "Crédito" && CARTOES.includes(parsed.cartao as never) ? (parsed.cartao as string) : null;
+
     const { data: row, error } = await context.supabase
       .from("expenses")
       .insert({
@@ -82,6 +93,9 @@ export const criarGastoPorTexto = createServerFn({ method: "POST" })
         data: dataGasto,
         descricao,
         via_ia: true,
+        local,
+        forma_pagamento: forma,
+        cartao,
       })
       .select("id, valor, categoria, data, descricao, via_ia")
       .single();
