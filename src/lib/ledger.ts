@@ -9,6 +9,9 @@ export type Gasto = {
   descricao: string | null;
   via_ia: boolean;
   recurring_id: string | null;
+  local: string | null;
+  forma_pagamento: string | null;
+  cartao: string | null;
 };
 
 export type Recorrente = {
@@ -20,11 +23,14 @@ export type Recorrente = {
   data_inicio: string;
   data_fim: string | null;
   ativo: boolean;
+  local: string | null;
+  forma_pagamento: string | null;
+  cartao: string | null;
 };
 
 export type Meta = { id: string; categoria: string; valor_meta: number };
 
-const SEL = "id, valor, categoria, data, descricao, via_ia, recurring_id";
+const SEL = "id, valor, categoria, data, descricao, via_ia, recurring_id, local, forma_pagamento, cartao";
 
 export async function idUsuario() {
   const { data } = await supabase.auth.getUser();
@@ -41,6 +47,16 @@ export async function buscarMes(ano: number, mes: number): Promise<Gasto[]> {
     .lte("data", fim)
     .order("data", { ascending: false })
     .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((g) => ({ ...g, valor: Number(g.valor) }));
+}
+
+export async function buscarTodos(): Promise<Gasto[]> {
+  const { data, error } = await supabase
+    .from("expenses")
+    .select(SEL)
+    .order("data", { ascending: true })
+    .order("created_at", { ascending: true });
   if (error) throw new Error(error.message);
   return (data ?? []).map((g) => ({ ...g, valor: Number(g.valor) }));
 }
@@ -83,7 +99,7 @@ export async function excluirMeta(categoria: string) {
 export async function buscarRecorrentes(): Promise<Recorrente[]> {
   const { data, error } = await supabase
     .from("recurring_expenses")
-    .select("id, valor, categoria, descricao, dia_do_mes, data_inicio, data_fim, ativo")
+    .select("id, valor, categoria, descricao, dia_do_mes, data_inicio, data_fim, ativo, local, forma_pagamento, cartao")
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   return (data ?? []).map((r) => ({ ...r, valor: Number(r.valor) }));
@@ -128,6 +144,9 @@ export async function sincronizarRecorrentes(): Promise<number> {
     descricao: string | null;
     via_ia: boolean;
     recurring_id: string;
+    local: string | null;
+    forma_pagamento: string | null;
+    cartao: string | null;
   }[] = [];
 
   for (const r of ativos) {
@@ -156,6 +175,9 @@ export async function sincronizarRecorrentes(): Promise<number> {
             descricao: r.descricao,
             via_ia: false,
             recurring_id: r.id,
+            local: r.local,
+            forma_pagamento: r.forma_pagamento,
+            cartao: r.cartao,
           });
         }
       }
