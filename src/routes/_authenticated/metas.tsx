@@ -12,12 +12,12 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_authenticated/metas")({
   head: () => ({
     meta: [
-      { title: "Metas por categoria — Meu Livro Contábil" },
+      { title: "Metas por categoria — Nomos" },
       {
         name: "description",
         content: "Defina uma meta mensal de gastos para cada categoria do seu livro-caixa.",
       },
-      { property: "og:title", content: "Metas por categoria — Meu Livro Contábil" },
+      { property: "og:title", content: "Metas por categoria — Nomos" },
       {
         property: "og:description",
         content: "Defina uma meta mensal de gastos para cada categoria do seu livro-caixa.",

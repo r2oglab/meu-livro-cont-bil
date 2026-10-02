@@ -29,12 +29,12 @@ import { PagamentoCampos } from "@/components/PagamentoCampos";
 export const Route = createFileRoute("/_authenticated/recorrentes")({
   head: () => ({
     meta: [
-      { title: "Gastos recorrentes — Meu Livro Contábil" },
+      { title: "Gastos recorrentes — Nomos" },
       {
         name: "description",
         content: "Gerencie seus gastos fixos mensais: editar, pausar ou excluir recorrências.",
       },
-      { property: "og:title", content: "Gastos recorrentes — Meu Livro Contábil" },
+      { property: "og:title", content: "Gastos recorrentes — Nomos" },
       {
         property: "og:description",
         content: "Gerencie seus gastos fixos mensais: editar, pausar ou excluir recorrências.",

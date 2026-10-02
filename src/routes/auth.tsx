@@ -9,9 +9,9 @@ export const Route = createFileRoute("/auth")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Entrar — Livro-Caixa" },
+      { title: "Entrar — Nomos" },
       { name: "description", content: "Acesse seu livro-caixa pessoal de gastos em reais." },
-      { property: "og:title", content: "Entrar — Livro-Caixa" },
+      { property: "og:title", content: "Entrar — Nomos" },
       {
         property: "og:description",
         content: "Acesse seu livro-caixa pessoal de gastos em reais.",
@@ -63,7 +63,7 @@ function AuthPage() {
         <p className="num text-xs uppercase tracking-[0.3em] text-muted-foreground">
           Controle de gastos
         </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">Livro-Caixa</h1>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight">Nomos</h1>
       </header>
 
       <form onSubmit={enviar} className="ledger-card space-y-5 p-6">

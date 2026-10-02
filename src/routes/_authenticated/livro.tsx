@@ -59,12 +59,12 @@ import { ExportarDialog } from "@/components/ExportarDialog";
 export const Route = createFileRoute("/_authenticated/livro")({
   head: () => ({
     meta: [
-      { title: "Livro-Caixa — Controle de gastos" },
+      { title: "Nomos — Controle de gastos" },
       {
         name: "description",
         content: "Registre e acompanhe seus gastos mensais em reais, por categoria.",
       },
-      { property: "og:title", content: "Livro-Caixa — Controle de gastos" },
+      { property: "og:title", content: "Nomos — Controle de gastos" },
       {
         property: "og:description",
         content: "Registre e acompanhe seus gastos mensais em reais, por categoria.",
@@ -182,7 +182,7 @@ function Livro() {
       <header className="mb-6">
         <div className="flex items-center justify-between">
           <p className="num text-[0.7rem] uppercase tracking-[0.28em] text-muted-foreground">
-            Livro-Caixa
+            Nomos
           </p>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <button
