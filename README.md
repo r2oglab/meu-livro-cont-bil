@@ -1,4 +1,4 @@
-# Meu Livro Contábil
+# Nomos
 
 Controle de Gastos — app pessoal de livro-caixa
 
